@@ -43,6 +43,7 @@ public class SinglyLinkedList {
         }
         return false;
     }
+    
     public List<Pedido> toList() {
     List<Pedido> list = new ArrayList<>();
     Node current = head;
