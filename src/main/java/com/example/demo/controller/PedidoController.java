@@ -84,6 +84,7 @@ public class PedidoController {
             return ResponseEntity.status(409).body("No hay operaciones para revertir");
         return ResponseEntity.ok("Rollback de operación: " + op.getTipoOperacion());
     }
+    
     @GetMapping("/estadisticas")
     public ResponseEntity<?> obtenerEstadisticas() {
         Map<String, Object> stats = service.obtenerEstadisticas();

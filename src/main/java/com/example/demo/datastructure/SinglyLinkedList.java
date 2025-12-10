@@ -8,7 +8,7 @@ import com.example.demo.model.Pedido;
 public class SinglyLinkedList {
     private Node head;
 
-    public void add(Pedido pedido) {
+    public void addLast(Pedido pedido) {
         Node newNode = new Node(pedido);
         if (head == null) head = newNode;
         else {
@@ -52,8 +52,6 @@ public class SinglyLinkedList {
     }
     return list;
 }
-
-
     public int size() {
         int count = 0;
         Node current = head;

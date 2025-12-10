@@ -12,17 +12,22 @@ public class Stack {
     }
 
     public void push(HistorialOperacion data) {
+        
         StackNode newNode = new StackNode(data);
         newNode.next = top;
         top = newNode;
     }
 
     public HistorialOperacion pop() {
+
         if (isEmpty()) return null;
         HistorialOperacion data = top.data;
         top = top.next;
         return data;
     }
 
-    public boolean isEmpty() { return top == null; }
+    public boolean isEmpty() { 
+
+        return top == null; 
+    }
 }

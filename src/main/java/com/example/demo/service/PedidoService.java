@@ -22,15 +22,20 @@ public class PedidoService {
     private int idCounter = 1;
 
     public Pedido registrarPedido(String nombre, String descripcion, double monto) {
+
         Pedido pedido = new Pedido(idCounter++, nombre, descripcion, monto, "REGISTRADO");
-        lista.add(pedido);
+
+        lista.addLast(pedido);
         cola.enqueue(pedido);
         historial.push(new HistorialOperacion("CREAR", null, pedido));
         return pedido;
+
     }
 
     public List<Pedido> listarPedidos() {
+        
         List<Pedido> pedidos = new ArrayList<>();
+
         Node actual = lista.getHead();
         while (actual != null) {
             pedidos.add(actual.data);
@@ -39,7 +44,9 @@ public class PedidoService {
         return pedidos;
     }
 
-    public Pedido buscarPorId(int id) { return lista.findById(id); }
+    public Pedido buscarPorId(int id){ 
+        return lista.findById(id);
+    }
 
     public boolean cancelarPedido(int id) {
         Pedido pedido = lista.findById(id);
@@ -58,6 +65,7 @@ public class PedidoService {
     }
 
     public Pedido despacharSiguiente() {
+
         Pedido pedido = cola.dequeue();
         if (pedido == null) return null;
         Pedido antes = new Pedido(pedido.getId(), pedido.getNombreCliente(), pedido.getDescripcion(), pedido.getMonto(), pedido.getEstado());
