@@ -1,5 +1,7 @@
 package com.example.demo.model;
 
+
+//Registro para el historial de operaciones
 public class HistorialOperacion {
     private String tipoOperacion;
     private Pedido pedidoAntes;

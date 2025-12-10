@@ -21,6 +21,7 @@ public class PedidoService {
     private final Stack historial = new Stack();
     private int idCounter = 1;
 
+    //Registra un nuevo pedido en el sistema y lo agrega a todas las estructuras
     public Pedido registrarPedido(String nombre, String descripcion, double monto) {
 
         Pedido pedido = new Pedido(idCounter++, nombre, descripcion, monto, "REGISTRADO");
@@ -32,6 +33,8 @@ public class PedidoService {
 
     }
 
+
+    //Devuelve la lista de pedidos
     public List<Pedido> listarPedidos() {
         
         List<Pedido> pedidos = new ArrayList<>();
@@ -44,10 +47,13 @@ public class PedidoService {
         return pedidos;
     }
 
+    //Busca un pedido por su id y lo devuelve, si no lo encuentra devuelve null
     public Pedido buscarPorId(int id){ 
         return lista.findById(id);
     }
 
+
+    //Cancela un pedido por su id, cambia su estado a CANCELADO
     public boolean cancelarPedido(int id) {
         Pedido pedido = lista.findById(id);
         if (pedido == null) return false;
@@ -57,6 +63,8 @@ public class PedidoService {
         return true;
     }
 
+
+    //Elimina un pedido por su id de la lista
     public boolean eliminarPedido(int id) {
         Pedido p = lista.findById(id);
         if (p == null) return false;
@@ -64,6 +72,8 @@ public class PedidoService {
         return lista.removeById(id);
     }
 
+
+    //Despacha el siguiente pedido en la cola (FIFO)
     public Pedido despacharSiguiente() {
 
         Pedido pedido = cola.dequeue();
@@ -74,6 +84,8 @@ public class PedidoService {
         return pedido;
     }
 
+
+    //Suma el monto del pedido actual y llama al siguiente indice
     public double montoTotalRecursivo() {
         return sumarRecursivo(lista.getHead());
     }
@@ -83,14 +95,17 @@ public class PedidoService {
         return nodo.data.getMonto() + sumarRecursivo(nodo.next);
     }
 
+    // Deshacer la última operacion (hace la operacion contraria)
     public HistorialOperacion rollback() {
         if (historial.isEmpty()) return null;
         return historial.pop();
     }
+
+    //Recorre la lista y obtiene estadisticas de los pedidos (total, montos, estados)
     public Map<String, Object> obtenerEstadisticas() {
     Map<String, Object> stats = new HashMap<>();
     int totalPedidos = lista.size();
-    double totalMonto = montoTotalRecursivo(); // usa método recursivo
+    double totalMonto = montoTotalRecursivo(); // usa metodo recursivo
     int totalRegistrados = 0;
     int totalDespachados = 0;
     int totalCancelados = 0;

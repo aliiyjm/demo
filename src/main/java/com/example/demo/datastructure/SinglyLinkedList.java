@@ -8,6 +8,8 @@ import com.example.demo.model.Pedido;
 public class SinglyLinkedList {
     private Node head;
 
+    //Lista vacia == newNode == head
+    //Recorrer la lista desde head hasta el final
     public void addLast(Pedido pedido) {
         Node newNode = new Node(pedido);
         if (head == null) head = newNode;
@@ -18,6 +20,7 @@ public class SinglyLinkedList {
         }
     }
 
+    //Recorre la lista nodo por nodo hasta encontrar el id
     public Pedido findById(int id) {
         Node current = head;
         while (current != null) {
@@ -27,6 +30,7 @@ public class SinglyLinkedList {
         return null;
     }
 
+    //Recorre la lista nodo por nodo hasta encontrar el id
     public boolean removeById(int id) {
         if (head == null) return false;
         if (head.data.getId() == id) {
@@ -44,15 +48,18 @@ public class SinglyLinkedList {
         return false;
     }
     
+
     public List<Pedido> toList() {
     List<Pedido> list = new ArrayList<>();
     Node current = head;
     while (current != null) {
         list.add(current.data);
         current = current.next;
+        }
+        return list;
     }
-    return list;
-}
+
+    //Incrementa un contador por nodo y devuelve el total de pedidos
     public int size() {
         int count = 0;
         Node current = head;
