@@ -20,7 +20,7 @@ public class PedidoService {
     private final SinglyLinkedList lista = new SinglyLinkedList(); // lista principal
     private final QueuePedidos cola = new QueuePedidos(); // pedidos pendientes (REGISTRADOS)
     private final Stack historial = new Stack(); // pila de operaciones
-    private int idCounter = 1; // genera ids únicos incrementales
+    private static int idCounter = 1; // genera ids únicos incrementales
 
     //REGISTRAR UN NUEVO PEDIDO
     public Pedido registrarPedido(String nombre, String descripcion, double monto) {
