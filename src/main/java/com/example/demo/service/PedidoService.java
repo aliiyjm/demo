@@ -16,29 +16,26 @@ import com.example.demo.model.Pedido;
 
 @Service
 public class PedidoService {
-    private final SinglyLinkedList lista = new SinglyLinkedList();
-    private final QueuePedidos cola = new QueuePedidos();
-    private final Stack historial = new Stack();
-    private int idCounter = 1;
 
-    //Registra un nuevo pedido en el sistema y lo agrega a todas las estructuras
+    private final SinglyLinkedList lista = new SinglyLinkedList(); // lista principal
+    private final QueuePedidos cola = new QueuePedidos(); // pedidos pendientes (REGISTRADOS)
+    private final Stack historial = new Stack(); // pila de operaciones
+    private int idCounter = 1; // genera ids únicos incrementales
+
+    //REGISTRAR UN NUEVO PEDIDO
     public Pedido registrarPedido(String nombre, String descripcion, double monto) {
-
         Pedido pedido = new Pedido(idCounter++, nombre, descripcion, monto, "REGISTRADO");
 
         lista.addLast(pedido);
         cola.enqueue(pedido);
         historial.push(new HistorialOperacion("CREAR", null, pedido));
-        return pedido;
 
+        return pedido;
     }
 
-
-    //Devuelve la lista de pedidos
+    //LISTAR TODOS LOS PEDIDOS
     public List<Pedido> listarPedidos() {
-        
         List<Pedido> pedidos = new ArrayList<>();
-
         Node actual = lista.getHead();
         while (actual != null) {
             pedidos.add(actual.data);
@@ -47,45 +44,77 @@ public class PedidoService {
         return pedidos;
     }
 
-    //Busca un pedido por su id y lo devuelve, si no lo encuentra devuelve null
-    public Pedido buscarPorId(int id){ 
+    //BUSCAR PEDIDO POR ID
+    public Pedido buscarPorId(int id) {
         return lista.findById(id);
     }
 
-
-    //Cancela un pedido por su id, cambia su estado a CANCELADO
+    //CANCELAR PEDIDO (CAMBIA ESTADO A CANCELADO)
     public boolean cancelarPedido(int id) {
         Pedido pedido = lista.findById(id);
         if (pedido == null) return false;
-        Pedido antes = new Pedido(pedido.getId(), pedido.getNombreCliente(), pedido.getDescripcion(), pedido.getMonto(), pedido.getEstado());
+
+        // Guardar estado anterior (para rollback)
+        Pedido antes = new Pedido(
+            pedido.getId(),
+            pedido.getNombreCliente(),
+            pedido.getDescripcion(),
+            pedido.getMonto(),
+            pedido.getEstado()
+        );
+
+        // Cambiar estado a CANCELADO
         pedido.setEstado("CANCELADO");
+
+        // Quitar de la cola de pendientes si estaba ahí
+        cola.reconstruirDesdeLista(lista.toList());
+
+        // Registrar operación en el historial
         historial.push(new HistorialOperacion("CANCELAR", antes, pedido));
+
         return true;
     }
 
-
-    //Elimina un pedido por su id de la lista
+    //ELIMINAR PEDIDO COMPLETAMENTE
     public boolean eliminarPedido(int id) {
         Pedido p = lista.findById(id);
         if (p == null) return false;
+
+        // Registrar operación para rollback
         historial.push(new HistorialOperacion("ELIMINAR", p, null));
-        return lista.removeById(id);
+
+        // Eliminar de la lista
+        boolean eliminado = lista.removeById(id);
+
+        // Actualizar cola
+        cola.reconstruirDesdeLista(lista.toList());
+
+        return eliminado;
     }
 
-
-    //Despacha el siguiente pedido en la cola (FIFO)
+    //DESPACHAR SIGUIENTE PEDIDO (FIFO)
     public Pedido despacharSiguiente() {
-
         Pedido pedido = cola.dequeue();
         if (pedido == null) return null;
-        Pedido antes = new Pedido(pedido.getId(), pedido.getNombreCliente(), pedido.getDescripcion(), pedido.getMonto(), pedido.getEstado());
+
+        Pedido antes = new Pedido(
+            pedido.getId(),
+            pedido.getNombreCliente(),
+            pedido.getDescripcion(),
+            pedido.getMonto(),
+            pedido.getEstado()
+        );
+
+        //Cambiar estado a DESPACHADO
         pedido.setEstado("DESPACHADO");
+
+        //Registrar en historial
         historial.push(new HistorialOperacion("DESPACHAR", antes, pedido));
+
         return pedido;
     }
 
-
-    //Suma el monto del pedido actual y llama al siguiente indice
+    //TOTAL RECURSIVO DE MONTOS
     public double montoTotalRecursivo() {
         return sumarRecursivo(lista.getHead());
     }
@@ -95,38 +124,78 @@ public class PedidoService {
         return nodo.data.getMonto() + sumarRecursivo(nodo.next);
     }
 
-    // Deshacer la última operacion (hace la operacion contraria)
+    //ROLLBACK (DESHACER ÚLTIMA OPERACIÓN)
     public HistorialOperacion rollback() {
         if (historial.isEmpty()) return null;
-        return historial.pop();
+
+        HistorialOperacion op = historial.pop();
+        String tipo = op.getTipoOperacion();
+
+        switch (tipo) {
+            case "CREAR" -> {
+                Pedido creado = op.getPedidoDespues();
+                lista.removeById(creado.getId());
+                cola.reconstruirDesdeLista(lista.toList());
+                System.out.println("Rollback: Pedido eliminado (CREAR revertido)");
+            }
+
+            case "CANCELAR" -> {
+                Pedido antes = op.getPedidoAntes();
+                Pedido actual = lista.findById(antes.getId());
+                if (actual != null) {
+                    actual.setEstado(antes.getEstado());
+                    cola.reconstruirDesdeLista(lista.toList());
+                }
+                System.out.println("Rollback: Pedido restaurado (CANCELAR revertido)");
+            }
+
+            case "DESPACHAR" -> {
+                Pedido p = op.getPedidoDespues();
+                p.setEstado("REGISTRADO");
+                cola.enqueue(p);
+                System.out.println("Rollback: Pedido devuelto a REGISTRADO (DESPACHAR revertido)");
+            }
+
+            case "ELIMINAR" -> {
+                Pedido eliminado = op.getPedidoAntes();
+                lista.addLast(eliminado);
+                cola.reconstruirDesdeLista(lista.toList());
+                System.out.println("Rollback: Pedido restaurado (ELIMINAR revertido)");
+            }
+
+            default -> System.out.println("Tipo de operación desconocido: " + tipo);
+        }
+
+        return op;
     }
 
-    //Recorre la lista y obtiene estadisticas de los pedidos (total, montos, estados)
+    //ESTADÍSTICAS DE PEDIDOS
     public Map<String, Object> obtenerEstadisticas() {
-    Map<String, Object> stats = new HashMap<>();
-    int totalPedidos = lista.size();
-    double totalMonto = montoTotalRecursivo(); // usa metodo recursivo
-    int totalRegistrados = 0;
-    int totalDespachados = 0;
-    int totalCancelados = 0;
+        Map<String, Object> stats = new HashMap<>();
 
-    // Recorre pedidos en la lista para contar estados
-    for (Pedido p : lista.toList()) { // usa el metodo toList()
-        if (p.getEstado() != null) {
-            switch (p.getEstado()) {
-                case "REGISTRADO" -> totalRegistrados++;
-                case "DESPACHADO" -> totalDespachados++;
-                case "CANCELADO" -> totalCancelados++;
+        int totalPedidos = lista.size();
+        double totalMonto = montoTotalRecursivo();
+
+        int totalRegistrados = 0;
+        int totalDespachados = 0;
+        int totalCancelados = 0;
+
+        for (Pedido p : lista.toList()) {
+            if (p.getEstado() != null) {
+                switch (p.getEstado()) {
+                    case "REGISTRADO" -> totalRegistrados++;
+                    case "DESPACHADO" -> totalDespachados++;
+                    case "CANCELADO" -> totalCancelados++;
+                }
             }
         }
-    }
 
-    stats.put("totalPedidos", totalPedidos);
-    stats.put("totalMonto", totalMonto);
-    stats.put("totalRegistrados", totalRegistrados);
-    stats.put("totalDespachados", totalDespachados);
-    stats.put("totalCancelados", totalCancelados);
+        stats.put("totalPedidos", totalPedidos);
+        stats.put("totalMonto", totalMonto);
+        stats.put("totalRegistrados", totalRegistrados);
+        stats.put("totalDespachados", totalDespachados);
+        stats.put("totalCancelados", totalCancelados);
 
-    return stats;
+        return stats;
     }
 }

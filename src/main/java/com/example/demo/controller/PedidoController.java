@@ -17,7 +17,7 @@ import com.example.demo.model.Pedido;
 import com.example.demo.service.PedidoService;
 
 @RestController
-@RequestMapping("/api/pedidos") //origen de los endpoints
+@RequestMapping("/api/pedidos") // Base de todos los endpoints
 public class PedidoController {
 
     private final PedidoService service;
@@ -26,11 +26,10 @@ public class PedidoController {
         this.service = service;
     }
 
-    //endpoints 
-
-    //Recibe los datos en JSON, los valida, llama al servicio, lo agrega a la lista y devuelve el pedido creado como JSON
+    //REGISTRAR NUEVO PEDIDO
     @PostMapping(consumes = "application/json", produces = "application/json")
     public ResponseEntity<?> crearPedido(@RequestBody Pedido pedido) {
+        // Validación
         if (pedido.getNombreCliente() == null || pedido.getNombreCliente().isBlank()
                 || pedido.getDescripcion() == null || pedido.getDescripcion().isBlank()
                 || pedido.getMonto() <= 0)
@@ -44,13 +43,13 @@ public class PedidoController {
         return ResponseEntity.ok(nuevo);
     }
 
-    //Llama al metodo listar y devuelve la lista de pedidos como JSON
+    //LISTAR TODOS LOS PEDIDOS
     @GetMapping
     public List<Pedido> listarPedidos() {
         return service.listarPedidos();
     }
 
-    //Obtiene el id, si no lo encuentra devuelve 404 
+    //CONSULTAR PEDIDO POR ID
     @GetMapping("/{id}")
     public ResponseEntity<?> buscar(@PathVariable int id) {
         Pedido pedido = service.buscarPorId(id);
@@ -59,16 +58,25 @@ public class PedidoController {
         return ResponseEntity.ok(pedido);
     }
 
-    //Obtiene el id, llama a cancelarPedido, si no lo encuentra devuelve 404
+    //CANCELAR PEDIDO (cambia estado a CANCELADO)
+    @DeleteMapping("/{id}/cancelar")
+    public ResponseEntity<?> cancelarPedido(@PathVariable int id) {
+        boolean ok = service.cancelarPedido(id);
+        if (!ok)
+            return ResponseEntity.status(404).body("Pedido no encontrado");
+        return ResponseEntity.ok("Pedido cancelado correctamente");
+    }
+
+    //ELIMINAR PEDIDO (borrado total de la lista)
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminar(@PathVariable int id) {
+    public ResponseEntity<?> eliminarPedido(@PathVariable int id) {
         boolean ok = service.eliminarPedido(id);
         if (!ok)
             return ResponseEntity.status(404).body("Pedido no encontrado");
         return ResponseEntity.ok("Pedido eliminado correctamente");
     }
 
-    //FIFO, cambia su estado a DESPACHADO
+    //DESPACHAR SIGUIENTE PEDIDO (FIFO con la cola)
     @PostMapping("/despachar")
     public ResponseEntity<?> despachar() {
         Pedido pedido = service.despacharSiguiente();
@@ -77,26 +85,30 @@ public class PedidoController {
         return ResponseEntity.ok(pedido);
     }
 
-    //Suma el monto de todos los pedidos
+    //TOTAL RECURSIVO (suma de montos usando recursión)
     @GetMapping("/total-recursivo")
     public ResponseEntity<?> totalRecursivo() {
         double total = service.montoTotalRecursivo();
-        return ResponseEntity.ok("{\"totalMontoRecursivo\": " + total + "}");
+        return ResponseEntity.ok(Map.of("totalMontoRecursivo", total));
     }
 
-    //Quita la ultima operacion realizada
+    //ROLLBACK (deshacer última operación)
     @PostMapping("/rollback")
     public ResponseEntity<?> rollback() {
         HistorialOperacion op = service.rollback();
         if (op == null)
             return ResponseEntity.status(409).body("No hay operaciones para revertir");
-        return ResponseEntity.ok("Rollback de operación: " + op.getTipoOperacion());
+        return ResponseEntity.ok(Map.of(
+                "mensaje", "Rollback realizado correctamente",
+                "operacionRevertida", op.getTipoOperacion(),
+                "pedidoAfectado", op.getPedidoDespues() != null ? op.getPedidoDespues() : op.getPedidoAntes()
+        ));
     }
-    
-    //Obtiene estadisticas de los pedidos
+
+    //ESTADÍSTICAS DE PEDIDOS
     @GetMapping("/estadisticas")
     public ResponseEntity<?> obtenerEstadisticas() {
         Map<String, Object> stats = service.obtenerEstadisticas();
-    return ResponseEntity.ok(stats);
+        return ResponseEntity.ok(stats);
     }
 }

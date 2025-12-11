@@ -1,5 +1,7 @@
 package com.example.demo.datastructure;
 
+import java.util.List;
+
 import com.example.demo.model.Pedido;
 
 public class QueuePedidos {
@@ -25,6 +27,19 @@ public class QueuePedidos {
         if (front == null) rear = null;
         return pedido;
     }
+    public void reconstruirDesdeLista(List<Pedido> pedidos) {
+    // Vacía la cola actual
+    this.front = null;
+    this.rear = null;
+
+    // Reencola solo los pedidos REGISTRADOS (pendientes por despachar)
+    for (Pedido p : pedidos) {
+        if ("REGISTRADO".equals(p.getEstado())) {
+            enqueue(p);
+        }
+    }
+}
+
 
     //Ver si la cola esta vacia
     public boolean isEmpty() { return front == null; }
