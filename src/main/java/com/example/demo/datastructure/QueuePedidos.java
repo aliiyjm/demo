@@ -39,8 +39,6 @@ public class QueuePedidos {
         }
     }
 }
-
-
     //Ver si la cola esta vacia
     public boolean isEmpty() { return front == null; }
 }
